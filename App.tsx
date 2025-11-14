@@ -1,20 +1,31 @@
-import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
+import "react-native-get-random-values";
+import React from "react";
+import { Provider as PaperProvider, DefaultTheme } from "react-native-paper";
+import AppNavigator from "./src/navigation/AppNavigator";
+import { ServicesProvider } from "./src/contexts/ServiceContext";
 
-export default function App() {
+const theme = {
+  ...DefaultTheme,
+  colors: {
+    ...DefaultTheme.colors,
+    primary: "#3A86FF",
+    accent: "#FFBE0B",
+    background: "#F8FBFF",
+    surface: "#FFFFFF",
+    text: "#1A1A1A",
+    error: "#DC3545",
+    success: "#28A745"
+  }
+};
+
+const App = () => {
   return (
-    <View style={styles.container}>
-      <Text>Open up App.tsx to start working on your app!</Text>
-      <StatusBar style="auto" />
-    </View>
+    <PaperProvider theme={theme}>
+      <ServicesProvider>
+        <AppNavigator />
+      </ServicesProvider>
+    </PaperProvider>
   );
-}
+};
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
+export default App;
