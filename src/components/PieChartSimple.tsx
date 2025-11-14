@@ -16,14 +16,18 @@ type Props = {
 const COLORS = ["#3A86FF", "#FFBE0B", "#FB6B6B", "#28A745", "#8A2BE2", "#FF6B6B"];
 
 const PieChartSimple: React.FC<Props> = ({ data = [], width, height }) => {
-  const safe =
-    Array.isArray(data) && data.length > 0
-      ? data
-      : [{ category: "No Data", total: 1 }];
+  const cleaned = (Array.isArray(data) ? data : [])
+    .map(x => ({
+      category: x?.category || "Others",
+      total: Number(x?.total) || 0
+    }))
+    .filter(x => x.total > 0);
+
+  const safe = cleaned.length > 0 ? cleaned : [{ category: "No Data", total: 1 }];
 
   const formatted = safe.map((item, i) => ({
     name: item.category,
-    population: Number(item.total),
+    population: Number(item.total) || 0,
     color: COLORS[i % COLORS.length],
     legendFontColor: "#333333",
     legendFontSize: 14

@@ -1,89 +1,68 @@
-import { Transaction } from "../types";
 import StorageService from "./StorageService";
-import { v4 as uuidv4 } from "uuid";
-type Listener = (txs: Transaction[]) => void;
+import { Transaction } from "../types";
+
 export default class TransactionManager {
   private storage: StorageService;
-  private transactions: Transaction[] = [];
-  private listeners: Listener[] = [];
+  private cache: Transaction[] = [];
+
   constructor(storage: StorageService) {
     this.storage = storage;
   }
-  async load(): Promise<Transaction[]> {
-    this.transactions = await this.storage.loadTransactions();
-    this.emit();
-    return this.transactions;
+
+  async load() {
+    const tx = await this.storage.loadTransactions();
+    this.cache = Array.isArray(tx) ? tx : [];
   }
-  async addTransaction(payload: Omit<Transaction, "id">): Promise<Transaction> {
-    const t: Transaction = { ...payload, id: uuidv4() };
-    this.transactions = [t, ...this.transactions];
-    await this.storage.saveTransactions(this.transactions);
-    this.emit();
-    return t;
+
+  getAll() {
+    return this.cache;
   }
-  async updateTransaction(id: string, payload: Partial<Transaction>): Promise<Transaction | null> {
-    let updated: Transaction | null = null;
-    this.transactions = this.transactions.map((t) => {
-      if (t.id === id) {
-        updated = { ...t, ...payload };
-        return updated;
-      }
-      return t;
-    });
-    await this.storage.saveTransactions(this.transactions);
-    this.emit();
-    return updated;
+
+  async add(t: Transaction) {
+    const fixed = {
+      ...t,
+      amount: Number(t.amount) || 0
+    };
+    this.cache.push(fixed);
+    await this.storage.saveTransactions(this.cache);
   }
-  async deleteTransaction(id: string): Promise<boolean> {
-    const before = this.transactions.length;
-    this.transactions = this.transactions.filter((t) => t.id !== id);
-    await this.storage.saveTransactions(this.transactions);
-    this.emit();
-    return this.transactions.length < before;
+
+  getTotalIncome() {
+    return this.cache
+      .filter(t => t.type === "income")
+      .reduce((s, x) => s + (Number(x.amount) || 0), 0);
   }
-  getTotalIncome(): number {
-    return this.transactions.filter((t) => t.type === "income").reduce((s, t) => s + t.amount, 0);
+
+  getTotalExpense() {
+    return this.cache
+      .filter(t => t.type === "expense")
+      .reduce((s, x) => s + (Number(x.amount) || 0), 0);
   }
-  getTotalExpense(): number {
-    return this.transactions.filter((t) => t.type === "expense").reduce((s, t) => s + t.amount, 0);
-  }
-  getBalance(): number {
+
+  getBalance() {
     return this.getTotalIncome() - this.getTotalExpense();
   }
-  getRecent(count: number): Transaction[] {
-    return this.transactions.slice(0, count);
+
+  getRecent(n: number) {
+    return [...this.cache].reverse().slice(0, n);
   }
-  getAll(): Transaction[] {
-    return this.transactions;
-  }
-  getWeeklyTrend(): number[] {
-    const trend = [0, 0, 0, 0, 0, 0, 0];
-    for (const tx of this.transactions) {
-      const d = new Date(tx.date);
-      const day = d.getDay();
-      const value = tx.type === "income" ? tx.amount : -tx.amount;
-      trend[day] += value;
-    }
-    return trend;
-  }
-  getCategorySummary(): { category: string; total: number }[] {
+
+  getWeeklyTrend() {
     const map: Record<string, number> = {};
-    for (const tx of this.transactions) {
-      if (tx.type !== "expense") continue;
-      if (!map[tx.category]) map[tx.category] = 0;
-      map[tx.category] += tx.amount;
+    for (const t of this.cache) {
+      const d = t.date.slice(0, 10);
+      map[d] = (map[d] || 0) + (Number(t.amount) || 0);
     }
-    return Object.keys(map).map((c) => ({ category: c, total: map[c] }));
+    return Object.entries(map).map(([date, total]) => ({ date, total }));
   }
-  onChange(fn: Listener): void {
-    this.listeners.push(fn);
-  }
-  private emit(): void {
-    for (const l of this.listeners) l(this.transactions.slice());
-  }
-  async convertAllCurrencies(rate: number): Promise<void> {
-    this.transactions = this.transactions.map((t) => ({ ...t, amount: t.amount * rate }));
-    await this.storage.saveTransactions(this.transactions);
-    this.emit();
+
+  getCategorySummary() {
+    const map: Record<string, number> = {};
+    for (const t of this.cache) {
+      const c = t.category || "Other";
+      const amt = Number(t.amount) || 0;
+      map[c] = (map[c] || 0) + amt;
+    }
+    return Object.entries(map).map(([category, total]) => ({ category, total }));
   }
 }
