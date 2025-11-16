@@ -4,11 +4,7 @@ import { AppSettings } from "../types";
 export class SettingsManager {
   private storage: StorageService;
   private cache: AppSettings = {
-    currency: "IDR",
-    monthlyBudget: 0,
-    alertThreshold: 0,
-    budgetAlertsEnabled: false,
-    categoryBudgets: {}
+    currency: "IDR"
   };
 
   private listeners: Array<(s: AppSettings) => void> = [];
@@ -21,6 +17,10 @@ export class SettingsManager {
     const raw = await this.storage.loadSettings();
     if (raw) this.cache = raw;
     return this.cache;
+  }
+
+  async loadSettings(): Promise<AppSettings> {
+    return this.load();
   }
 
   getSettings(): AppSettings {

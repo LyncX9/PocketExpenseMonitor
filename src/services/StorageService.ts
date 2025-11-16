@@ -1,4 +1,17 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
+let AsyncStorage: any;
+try {
+  AsyncStorage = require("@react-native-async-storage/async-storage").default;
+} catch (e) {
+  AsyncStorage = {
+    _store: {} as Record<string, string>,
+    async getItem(k: string) {
+      return Object.prototype.hasOwnProperty.call(this._store, k) ? this._store[k] : null;
+    },
+    async setItem(k: string, v: string) {
+      this._store[k] = v;
+    }
+  };
+}
 import { Transaction, AppSettings } from "../types";
 const TX_KEY = "APP_TRANSACTIONS";
 const SETTINGS_KEY = "APP_SETTINGS";
@@ -28,3 +41,4 @@ export default class StorageService {
     await AsyncStorage.setItem(SETTINGS_KEY, JSON.stringify(s));
   }
 }
+export { StorageService };

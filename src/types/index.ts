@@ -8,12 +8,13 @@ export type Transaction = {
   type: TransactionType;
   date: string;
   note?: string;
+  originalCurrency?: string;
+  originalAmount?: number;
 };
 
 export type AppSettings = {
   currency: string;
-  monthlyBudget: number;
-  alertThreshold: number;
-  budgetAlertsEnabled: boolean;
-  categoryBudgets: Record<string, number>;
+  selectedWeek?: number;
+  showDelta?: boolean;
+  selectedMonth?: string;
 };

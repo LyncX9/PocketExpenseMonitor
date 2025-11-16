@@ -29,6 +29,7 @@ const ServicesContext = createContext<Services>({
 
 export const ServicesProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const initialize = async () => {
+    await transactionManager.load();
     const s = await settingsManager.load();
     const base: string = s.currency ?? "IDR";
     await currencyService.loadRates(base);
